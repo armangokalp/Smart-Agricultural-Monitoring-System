@@ -1,0 +1,83 @@
+
+#include <WiFi.h>
+#include <BH1750.h>
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
+
+// Wi-Fi Ayarları
+const char* ssid = "Arman's Galaxy S22+";              // Wi-Fi ağı
+const char* password = "arman123";     // Wi-Fi şifre
+const char* targetIP = "192.168.162.7"; // Bilgisayarın IP adresi
+const int targetPort = 12345;           // UDP'nin hedef portu
+
+// NTP Ayarları
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 10800, 60000); // Türkiye için UTC+3 zaman farkı (3*3600=10800)
+
+// Sensör Ayarları
+#define DHTPIN 4
+#define DHTTYPE DHT22
+const int soilAnalogPin = 34;
+DHT dht(DHTPIN, DHTTYPE);
+BH1750 lightMeter;
+
+// UDP Nesnesi
+WiFiUDP udp;
+
+void setup() {
+  Serial.begin(115200);
+
+  // Wi-Fi Bağlantısı
+  Serial.println("Wi-Fi'ye bağlanılıyor...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println("\nWi-Fi bağlı.");
+  Serial.print("ESP32 IP Adresi: ");
+  Serial.println(WiFi.localIP());
+
+  // NTP İstemcisini Başlat
+  timeClient.begin();
+
+  // Sensörlerin Başlatılması
+  dht.begin();
+  Wire.begin(21, 22);
+  if (!lightMeter.begin()) {
+    Serial.println("BH1750 başlatılamadı.");
+  }
+}
+
+void loop() {
+  // NTP'den Zaman Güncellemesi
+  timeClient.update();
+  String timestamp = timeClient.getFormattedTime();
+  
+  // Sensör Verilerini Okuma
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature();
+  float lux = lightMeter.readLightLevel();
+  int soilValue = analogRead(soilAnalogPin);
+  float soilMoisture = map(soilValue, 0, 4095, 100, 0);
+
+  // Verileri UDP Paketi Olarak Hazırlama
+  String message = "Timestamp: " + timestamp +
+                   ", Nem: " + String(humidity) + 
+                   " %, Sıcaklık: " + String(temperature) + 
+                   " °C, Işık: " + String(lux) + 
+                   " lux, Toprak Nem: " + String(soilMoisture) + " %";
+  
+  // UDP Paketi Gönderme
+  udp.beginPacket(targetIP, targetPort);
+  udp.print(message);
+  udp.endPacket();
+
+  
+  Serial.println(message);
+
+  delay(2000); // 2 saniye bekleme
+}
