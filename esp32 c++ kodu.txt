@@ -8,10 +8,10 @@
 #include <NTPClient.h>
 
 // Wi-Fi Ayarları
-const char* ssid = "Arman's Galaxy S22+";              // Wi-Fi ağı
-const char* password = "arman123";     // Wi-Fi şifre
-const char* targetIP = "192.168.162.7"; // Bilgisayarın IP adresi
-const int targetPort = 12345;           // UDP'nin hedef portu
+const char* ssid = "Wi-Fi name";
+const char* password = "Wi-Fi password";
+const char* targetIP = "Device IP";
+const int targetPort = UDP target port;
 
 // NTP Ayarları
 WiFiUDP ntpUDP;
